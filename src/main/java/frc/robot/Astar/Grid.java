@@ -53,6 +53,101 @@ public class Grid extends Network{
 
         //Expand obstacle by robot radius. These are no entry zones
         int robotRadius = Math.round((float)robotRadius_mm/Layout.tile_size_mm);
+
+        for (int x = 0; x < xSize; x++) {
+            for (int y = 0; y < ySize; y++) {
+                Node current = find(x, y);
+                if (current.getObsValue() == Node.maxObsValue) {
+                    boolean edgeFlag = false;
+                    for (Node n : current.getNeighbours()) {
+                        // temporary value
+                        if (n.getObsValue() != Node.maxObsValue) {
+                            edgeFlag = true;
+                            break;
+                        }
+                    }
+                    // expand obstacle only for cell on the edge of obstacle
+                    if (edgeFlag == true) {
+                        for (int kx=-robotRadius; kx<=robotRadius; kx++) {
+                            for (int ky=-robotRadius; ky<=robotRadius; ky++) {
+                                double dist = Math.sqrt(kx*kx + ky*ky);
+                                if (dist<=robotRadius) {
+                                    int ox = x + kx;
+                                    int oy = y + ky;
+                                    Node obsCell = find(ox, oy);
+                                    if (obsCell != null && obsCell.getObsValue()!=Node.maxObsValue) {
+                                        obsCell.setObsValue(Node.maxObsValue-1);
+
+                                    }
+
+                                }
+
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+
+        //Expand obstacle by path cost. These are high cost cell to force robot away from obstacle
+        //It is possible for robot to enter these cells (tiles).
+        //Number of cells to expand and their values are defined here
+        double keepOutDist_mm = 150;      
+        int numOfCells = Math.round((float)keepOutDist_mm/Layout.tile_size_mm);  
+        double expansion[] = new double[numOfCells];
+        double factor = Math.exp(Math.log(0.1f)/numOfCells);
+        double cost = Node.maxObsValue*factor;
+        for (int i=0; i<numOfCells; i++) { 
+            expansion[i] = cost;
+            cost *= factor;
+        }
+
+
+        for (int x = 0; x < xSize; x++) {
+            for (int y = 0; y < ySize; y++) {
+
+                Node current = find(x, y);
+                if (current.getObsValue() == (Node.maxObsValue-1)) {
+                    boolean edgeFlag = false;
+                    for (Node n : current.getNeighbours()) {
+                        // temporary value
+                        if (n.getObsValue() < (Node.maxObsValue-1)) {
+                            edgeFlag = true;
+                            break;
+                        }
+                    }
+                    // expand obstacle only for cell on the edge of obstacle
+                    if (edgeFlag == true) {
+                        for (int kx=-numOfCells; kx<=numOfCells; kx++) {
+                            for (int ky=-numOfCells; ky<=numOfCells; ky++) {
+                                int dist = Math.round((float)Math.sqrt(kx*kx + ky*ky));
+                                if (dist<numOfCells) {
+                                    int ox = x + kx;
+                                    int oy = y + ky;
+                                    Node obsCell = find(ox, oy);
+                                    if (obsCell != null && obsCell.getObsValue()<expansion[dist]) {
+                                        obsCell.setObsValue(expansion[dist]);
+
+                                    }
+
+                                }
+
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
+
+    public void ExpandObstacles2(float robotRadius_mm) {
+
+        //Expand obstacle by robot radius. These are no entry zones
+        int robotRadius = Math.round((float)robotRadius_mm/Layout.tile_size_mm);
         for (int k=0; k<robotRadius; k++) {
             for (int x = 0; x < xSize; x++) {
                 for (int y = 0; y < ySize; y++) {
@@ -61,7 +156,7 @@ public class Grid extends Network{
                         for (Node n : current.getNeighbours()) {
                             //temporary value
                             if (n.getObsValue()!=Node.maxObsValue)
-                            n.setObsValue(Node.maxObsValue/2);
+                                n.setObsValue(Node.maxObsValue/2);
                         }
                     }
                 }
@@ -80,33 +175,33 @@ public class Grid extends Network{
         //Expand obstacle by path cost. These are high cost cell to force robot away from obstacle
         //It is possible for robot to enter these cells (tiles).
         //Number of cells to expand and their values are defined here
-        double keepOutDist_mm = 160;      
-        int numOfCells = Math.round((float)keepOutDist_mm/Layout.tile_size_mm);  
-        double expansion[] = new double[numOfCells];
-        double factor = Math.exp(Math.log(0.1f)/numOfCells);
-        double cost = Node.maxObsValue*factor;
-        for (int i=0; i<numOfCells; i++) { 
-            expansion[i] = cost;
-            cost *= factor;
-        }
+        // double keepOutDist_mm = 160;      
+        // int numOfCells = Math.round((float)keepOutDist_mm/Layout.tile_size_mm);  
+        // double expansion[] = new double[numOfCells];
+        // double factor = Math.exp(Math.log(0.1f)/numOfCells);
+        // double cost = Node.maxObsValue*factor;
+        // for (int i=0; i<numOfCells; i++) { 
+        //     expansion[i] = cost;
+        //     cost *= factor;
+        // }
 
-        for (int k=0; k<expansion.length; k++) {
-            for (int x = 0; x < xSize; x++) {
-                for (int y = 0; y < ySize; y++) {
-                    double obsValue = expansion[k];
-                    Node current = find(x,y);
-                    if (current.getObsValue()>obsValue) {
-                        for (Node n : current.getNeighbours()) {
-                            if (n.getObsValue()==0.0)
-                                n.setObsValue(obsValue);
-                        }
-                    }
-                }
-            }
-        }
+        // for (int k=0; k<expansion.length; k++) {
+        //     for (int x = 0; x < xSize; x++) {
+        //         for (int y = 0; y < ySize; y++) {
+        //             double obsValue = expansion[k];
+        //             Node current = find(x,y);
+        //             if (current.getObsValue()>obsValue) {
+        //                 for (Node n : current.getNeighbours()) {
+        //                     if (n.getObsValue()==0.0)
+        //                         n.setObsValue(obsValue);
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
     }
 
-  /**
+    /**
    * Add rectangular shape obstacle to field.
    *
    * @param x0 centre X pos
